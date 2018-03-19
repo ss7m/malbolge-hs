@@ -1,7 +1,10 @@
 {-# LANGUAGE FlexibleInstances #-}
 
+module Word (Word, wordMin, wordMax) where
+
 import Prelude hiding (Word)
 import Data.Ratio
+import Data.Ix
 
 import Trit
 
@@ -53,6 +56,8 @@ instance Enum Word where
   fromEnum [] = 0
   fromEnum (x:xs) = tritToInt x + 3 * fromEnum xs
 
+  succ x = x + [W,O,O,O,O,O,O,O,O,O]
+
 instance Real Word where
   toRational [] = 0
   toRational (x:xs) = (tritToInt x % 1) + 3 * toRational xs
@@ -67,3 +72,22 @@ instance Integral Word where
       quotRem' x y
         | reverse x < reverse y = (fromInteger 0, x)
         | otherwise = let (quot, rem) = quotRem' (x-y) y in (quot+1, rem)
+
+instance Ix Word where
+  range (x,y) = take (1+fromEnum (y-x)) (iterate succ x)
+
+  inRange (x,y) z = z' >= x' && z' <= y' 
+    where
+      x' = reverse x
+      y' = reverse y
+      z' = reverse z
+
+  index (x,y) z
+    | inRange (x,y) z = fromEnum (z-x)
+    | otherwise = error ("Error: " ++ show z ++ "Out of range")
+
+wordMax :: Word
+wordMax = [T,T,T,T,T,T,T,T,T,T]
+
+wordMin :: Word
+wordMin = [O,O,O,O,O,O,O,O,O,O]
