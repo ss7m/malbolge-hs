@@ -1,27 +1,28 @@
-import VM
-import Word
 import Data.Char
 import Data.Array.MArray
 import Data.Foldable
 import System.IO
 import System.Environment
 
+import TWord
+import VM
+
 initializeMemory :: String -> Memory
 initializeMemory str = do
-  mem <- newArray (wordMin, wordMax) wordMin :: Memory
-  let prog = zip (enumFromTo wordMin wordMax) (map ord' (filter (not . isSpace) str))
+  mem <- newArray (0, twordMax) 0 :: Memory
+  let prog = zip (enumFromTo 0 twordMax) (map ord' (filter (not . isSpace) str))
 
   mapM_ (\(i,e) -> writeArray mem i e) prog
 
-  forM_ (enumFromTo (toEnum (length str)) wordMax) $ \i -> do
+  forM_ (enumFromTo (toEnum (length str)) twordMax) $ \i -> do
     w1 <- readArray mem (i - 1)
     w2 <- readArray mem (i - 2)
-    writeArray mem i (crazyW w1 w2)
+    writeArray mem i (crazy w1 w2)
 
   return mem
 
 initializeState :: String -> State
-initializeState str = (wordMin, wordMin, wordMin, initializeMemory str)
+initializeState str = (0, 0, 0, initializeMemory str)
 
 run :: State -> IO ()
 run (a,c,d,iomem) = do
@@ -45,7 +46,7 @@ run (a,c,d,iomem) = do
   else if instr == 39 then do
     print 39
     _d_ <- readArray mem d
-    let rotD = rot _d_
+    let rotD = rotR _d_
     writeArray mem d rotD
     next (rotD, c, d, iomem)
   else if instr == 40 then do
@@ -55,7 +56,7 @@ run (a,c,d,iomem) = do
   else if instr == 62 then do
     print 62
     _d_ <- readArray mem d
-    let crz = crazyW a _d_
+    let crz = crazy a _d_
     writeArray mem d crz
     next (crz, c, d, iomem)
   else if instr == 81 then do
