@@ -1,5 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-
 import Data.Char
 import Data.Array.MArray
 import Data.Foldable
@@ -10,13 +8,13 @@ import System.Exit
 import TWord
 import VM
 
+-- Takes the code and initializes the memory
 initializeMemory :: String -> Memory
 initializeMemory str = do
   mem <- newArray (0, twordMax) 0 :: Memory
   let str' = filter (not . isSpace) str
   let prog = zip (enumFromTo 0 twordMax) (map ord' str')
 
-  --mapM_ (\(i,e) -> writeArray mem i e) prog
   forM_ prog $ \(i,e) -> 
     if ((e + i) `mod` 94) `elem` [4,5,23,39,40,62,68,81] then
       writeArray mem i e
@@ -31,9 +29,11 @@ initializeMemory str = do
 
   return mem
 
+-- creates the initial state
 initializeState :: String -> State
 initializeState str = (0, 0, 0, initializeMemory str)
 
+-- Runs the malbolge program
 run :: State -> IO ()
 run (a,c,d,iomem) = do
   mem <- iomem
@@ -68,6 +68,7 @@ run (a,c,d,iomem) = do
   else do
     next (a, c, d, return mem)
 
+-- handles incrementing and encryption
 next :: State -> IO ()
 next (a,c,d,iomem) = do
   mem <- iomem
