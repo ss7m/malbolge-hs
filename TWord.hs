@@ -6,10 +6,13 @@ import Data.Word
 import Data.Ratio
 import Data.Ix
 
-newtype TWord = TW Word16 deriving (Eq, Ord, Show, Real, Integral, Ix)
+newtype TWord = TW Word16 deriving (Eq, Ord, Real, Integral, Ix)
 
 twordMax :: TWord
-twordMax = TW 59049
+twordMax = TW 59048
+
+instance Show TWord where
+  show (TW x) = show x
 
 instance Num TWord where
   (TW x) + (TW y) = TW ((x + y) `mod` 59049)

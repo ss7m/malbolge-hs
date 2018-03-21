@@ -1,8 +1,11 @@
+{-# LANGUAGE BangPatterns #-}
+
 import Data.Char
 import Data.Array.MArray
 import Data.Foldable
 import System.IO
 import System.Environment
+import System.Exit
 
 import TWord
 import VM
@@ -10,14 +13,21 @@ import VM
 initializeMemory :: String -> Memory
 initializeMemory str = do
   mem <- newArray (0, twordMax) 0 :: Memory
-  let prog = zip (enumFromTo 0 twordMax) (map ord' (filter (not . isSpace) str))
+  let str' = filter (not . isSpace) str
+  let prog = zip (enumFromTo 0 twordMax) (map ord' str')
 
-  mapM_ (\(i,e) -> writeArray mem i e) prog
+  --mapM_ (\(i,e) -> writeArray mem i e) prog
+  forM_ prog $ \(i,e) -> 
+    if ((e + i) `mod` 94) `elem` [4,5,23,39,40,62,68,81] then
+      writeArray mem i e
+    else do
+      print "Invalid character in source file"
+      exitFailure
 
-  forM_ (enumFromTo (toEnum (length str)) twordMax) $ \i -> do
+  forM_ (enumFromTo (toEnum (length str')) twordMax) $ \i -> do
     w1 <- readArray mem (i - 1)
     w2 <- readArray mem (i - 2)
-    writeArray mem i (crazy w1 w2)
+    writeArray mem i (crazy w2 w1)
 
   return mem
 
@@ -26,51 +36,44 @@ initializeState str = (0, 0, 0, initializeMemory str)
 
 run :: State -> IO ()
 run (a,c,d,iomem) = do
-  print (a,c,d)
   mem <- iomem
   _c_ <- readArray mem c
-  -- check out of range
+
   let instr = (c + _c_) `mod` 94
+
   if instr == 4 then do
-    print 4
     _d_ <- readArray mem d
-    next (a, _d_, d, iomem)
+    next (a, _d_, d, return mem)
   else if instr == 5 then do
-    print 5
-    print (chr' (a `mod` 256))
-    next (a, c, d, iomem)
+    putChar (chr' (a `mod` 128))
+    next (a, c, d, return mem)
   else if instr == 23 then do
-    print 23
     newA <- getChar
-    next (ord' newA, c, d, iomem)
+    next (ord' newA, c, d, return mem)
   else if instr == 39 then do
-    print 39
     _d_ <- readArray mem d
     let rotD = rotR _d_
     writeArray mem d rotD
-    next (rotD, c, d, iomem)
+    next (rotD, c, d, return mem)
   else if instr == 40 then do
-    print 40
     _d_ <- readArray mem d
-    next (a, c, _d_, iomem)
+    next (a, c, _d_, return mem)
   else if instr == 62 then do
-    print 62
     _d_ <- readArray mem d
-    let crz = crazy a _d_
+    let crz = crazy _d_ a
     writeArray mem d crz
-    next (crz, c, d, iomem)
+    next (crz, c, d, return mem)
   else if instr == 81 then do
-    print 81
     return ()
-  else
-    next (a, c, d, iomem)
+  else do
+    next (a, c, d, return mem)
 
 next :: State -> IO ()
 next (a,c,d,iomem) = do
   mem <- iomem
   _c_ <- readArray mem c
-  writeArray mem c (encrypt _c_)
-  run (a,c+1,d+1, iomem)
+  writeArray mem c $ encrypt (_c_ `mod` 94)
+  run (a,c+1,d+1, return mem)
 
 main :: IO ()
 main = do
