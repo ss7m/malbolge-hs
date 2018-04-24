@@ -2,7 +2,6 @@ module VM (Register, Memory, State, encrypt, chr', ord') where
 
 import Data.Char
 import Data.Array.IO
-import Data.List (elemIndex)
 
 import TWord
 
